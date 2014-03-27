@@ -1,0 +1,24 @@
+{
+  "name": "drawing_machine",
+  "version": "0.0.1",
+  "description": "Powers the incredible drawing machino",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dustMason/Drawing-Machino.git"
+  },
+  "keywords": [
+    "arduino",
+    "drawing",
+    "machine"
+  ],
+  "author": "Jordan Sitkin",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/dustMason/Drawing-Machino/issues"
+  },
+  "homepage": "https://github.com/dustMason/Drawing-Machino"
+}
