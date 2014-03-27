@@ -20,5 +20,8 @@
   "bugs": {
     "url": "https://github.com/dustMason/Drawing-Machino/issues"
   },
-  "homepage": "https://github.com/dustMason/Drawing-Machino"
+  "homepage": "https://github.com/dustMason/Drawing-Machino",
+  "dependencies": {
+    "johnny-five": "~0.7.30"
+  }
 }
