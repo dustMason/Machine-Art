@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      body {
+        font-family: Tahoma, Geneva, sans-serif;
+      }
+    </style>
+    <script>
+      var host = window.document.location.host.replace(/:.*/, '');
+      var ws = new WebSocket('ws://' + host + ':8080');
+      document.addEventListener("click", function(e) {
+        ws.send([e.x, e.y].join(","));
+      }, false);
+    </script>
+  </head>
+  <body>
+    <h1>Hi.</h1>
+  </body>
+</html>
