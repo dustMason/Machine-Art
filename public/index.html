@@ -1,20 +1,20 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <style>
-      body {
-        font-family: Tahoma, Geneva, sans-serif;
-      }
-    </style>
-    <script>
-      var host = window.document.location.host.replace(/:.*/, '');
-      var ws = new WebSocket('ws://' + host + ':8080');
-      document.addEventListener("click", function(e) {
-        ws.send([e.x, e.y].join(","));
-      }, false);
-    </script>
+    <link rel="stylesheet" href="style.css">
   </head>
   <body>
-    <h1>Hi.</h1>
+    <div id="svg"></div>
+    <div id="controls">
+      <a href="#" id="btn-generate" class="button">Generate</a>
+    </div>
+    <pre id="gcode"></pre>
+    <script src="three.min.js"></script>
+    <script src="SVGReader.js"></script>
+    <script src="vec2.js"></script>
+    <script src="svg2gcode.js"></script>
+    <script src="TrackballControls.js"></script>
+    <script src="SVGRenderer.js"></script>
+    <script src="main.js"></script>
   </body>
 </html>

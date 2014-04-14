@@ -24,16 +24,15 @@
 #define L_PIN          (A3)
 #define R_PIN          (A5)
 
+#define STEP_STYLE     (INTERLEAVE)
+
 // NEMA17 are 200 steps (1.8 degrees) per turn.  If a spool is 0.8 diameter
 // then it is 2.5132741228718345 circumference, and
 // 2.5132741228718345 / 200 = 0.0125663706 thread moved each step.
 // NEMA17 are rated up to 3000RPM.  Adafruit can handle >1000RPM.
 // These numbers directly affect the maximum velocity.
 #define STEPS_PER_TURN  (400.0)
-#define MAX_RPM         (200.0)
-
-// delay between steps, in microseconds.
-#define STEP_DELAY      (5200)  // = 3.5ms
+#define MAX_RPM         (1000.0)
 
 // switch sensitivity
 #define SWITCH_HALF     (512)
@@ -128,13 +127,17 @@ int M1_REEL_IN  = FORWARD;
 int M1_REEL_OUT = BACKWARD;
 int M2_REEL_IN  = FORWARD;
 int M2_REEL_OUT = BACKWARD;
+/* int M1_REEL_IN  = BACKWARD; */
+/* int M1_REEL_OUT = FORWARD; */
+/* int M2_REEL_IN  = BACKWARD; */
+/* int M2_REEL_OUT = FORWARD; */
 
 // calculate some numbers to help us find feed_rate
-float SPOOL_DIAMETER1 = 0.950;
-float THREADPERSTEP1; // thread per step
+float SPOOL_DIAMETER1 = 4.300;
+float THREADPERSTEP1 = 0.675; // thread per step
 
-float SPOOL_DIAMETER2 = 0.950;
-float THREADPERSTEP2; // thread per step
+float SPOOL_DIAMETER2 = 4.300;
+float THREADPERSTEP2 = 0.675; // thread per step
 
 float MAX_VEL = MAX_STEPS_S * THREADPERSTEP1; // cm/s
 
@@ -338,21 +341,21 @@ static void line(float x,float y,float z) {
   // bresenham's line algorithm.
   if(ad1>ad2) {
     for(i=0;i<ad1;++i) {
-      m1->onestep(dir1,SINGLE);
+      m1->onestep(dir1,STEP_STYLE);
       over+=ad2;
       if(over>=ad1) {
         over-=ad1;
-        m2->onestep(dir2,SINGLE);
+        m2->onestep(dir2,STEP_STYLE);
       }
       pause(step_delay);
     }
   } else {
     for(i=0;i<ad2;++i) {
-      m2->onestep(dir2,SINGLE);
+      m2->onestep(dir2,STEP_STYLE);
       over+=ad1;
       if(over>=ad2) {
         over-=ad2;
-        m1->onestep(dir1,SINGLE);
+        m1->onestep(dir1,STEP_STYLE);
       }
       pause(step_delay);
     }
