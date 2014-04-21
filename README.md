@@ -1,5 +1,35 @@
-G-Code Commands Implemented
------
+# The Polygon Elvis
+
+- Two pages: Create and Command
+- *Create* allows creation of SVG graphics using various libs
+- *Command* converts SVG data into machine-appropriate GCODE
+
+## Create
+
+- ThreeJS
+  - Import 3d models
+  - Move camera
+  - Adjust geometry
+  - Reads stream from Kinect
+- PaperJS
+  - Draw
+  - Create geometric patterns
+- etc...
+
+## Command
+
+- Converts SVG into GCODE
+  - User can load SVG file
+  - Browser shows in-page preview of SVG
+  - User sets svg2gcode options and machine canvas options
+  - Prepends drawing GCODE commands with machine-specific commands then saves out to a file
+- Load GCODE file
+  - Tells the node.js server to initiate a session with the machine
+  - Server will send streaming updates to the browser via websockets
+  - Browser can send pause / halt signals via UI
+  - Browser displays a live preview showing progress of the machine
+
+# GCode Commands Implemented
 
 - M114: calls `where`
 - M18: disables motors

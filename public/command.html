@@ -4,19 +4,19 @@
     <link rel="stylesheet" href="style.css">
   </head>
   <body>
-    <div id="work-area">
-      <div id="svg"></div>
-    </div>
+    <div id="svg"></div>
     <div id="controls">
-      <a href="#" id="btn-generate" class="button">Generate</a>
+      <form>
+        <input type="file" id="files">
+      </form>
     </div>
     <pre id="gcode"></pre>
     <script src="three.min.js"></script>
     <script src="SVGReader.js"></script>
     <script src="vec2.js"></script>
     <script src="svg2gcode.js"></script>
-    <script src="TrackballControls.js"></script>
-    <script src="SVGRenderer.js"></script>
-    <script src="main.js"></script>
+    <script src="machine.js"></script>
+    <script src="command.js"></script>
   </body>
 </html>
+

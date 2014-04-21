@@ -24,12 +24,22 @@ a {
   margin: 0 auto;
 }
 
-#svg {
+#work-area {
   position: absolute;
   left: 0;
   top: 0;
   bottom: 0;
   right: 350px;
+  background: #666;
+}
+
+#svg {
+  position: absolute;
+  width: 600px;
+  height: 800px;
+  left: 50%;
+  top: 50%;
+  margin: -400px 0 0 -300px;
   background: #fff;
 }
 
