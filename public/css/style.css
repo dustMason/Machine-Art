@@ -20,6 +20,7 @@ body {
   background: #666;
 }
 
+#work-area canvas,
 #svg {
   position: absolute;
   width: 600px;

@@ -1,4 +1,5 @@
 var artworks = [
+  '/js/pattern_brush.js',
   '/art/dot.svg',
   '/art/spiral.svg',
   '/js/kinect_mesh_experiment.js',
@@ -19,6 +20,7 @@ $menu.change(function(e) {
   e.preventDefault();
   var artwork = $(this).val();
   $svgElm.html("");
+  $("#work-area").find("canvas").remove();
 
   if (artwork.indexOf("js") > 0) {
     $.getScript(artwork);
