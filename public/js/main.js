@@ -1,8 +1,12 @@
 var artworks = [
+  '/js/canny_tesselated_portrait.js',
+  '/js/tesselated_portrait.js',
+  '/js/shaded_sphere.js',
+  '/js/shaded_torus_knot.js',
+  '/js/kinect_mesh_experiment.js',
   '/js/pattern_brush.js',
   '/art/dot.svg',
   '/art/spiral.svg',
-  '/js/kinect_mesh_experiment.js',
   '/js/tetrahedron_field.js'
 ];
 
@@ -22,6 +26,19 @@ $menu.change(function(e) {
   $svgElm.html("");
   $("#work-area").find("canvas").remove();
 
+  generateButton.onclick = function(e) {
+    e.preventDefault();
+    var XMLS = new XMLSerializer();
+    var svgfile = XMLS.serializeToString($svgElm.get(0));
+
+    gcodeText.innerHTML = svg2gcode(svgfile, {
+      feedRate: 1500,
+      seekRate: 10000,
+      bitWidth: 1,
+      scale: 0.75
+    });
+  };
+
   if (artwork.indexOf("js") > 0) {
     $.getScript(artwork);
   } else if (artwork.indexOf("svg") > 0) {
@@ -33,20 +50,3 @@ $menu.change(function(e) {
   }
 }).change();
 
-copyButton.onclick = function(e) {
-  e.preventDefault();
-  gcodeText.select();
-};
-
-generateButton.onclick = function(e) {
-  e.preventDefault();
-  var XMLS = new XMLSerializer();
-  var svgfile = XMLS.serializeToString($svgElm.get(0));
-
-  gcodeText.innerHTML = svg2gcode(svgfile, {
-    feedRate: 1500,
-    seekRate: 10000,
-    bitWidth: 1,
-    scale: 0.75
-  });
-};

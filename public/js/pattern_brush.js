@@ -5,27 +5,23 @@ document.getElementById("work-area").appendChild(canvas);
 paper.setup(canvas);
 
 // load an image
-var raster = new paper.Raster('/art/cyrelle.jpg');
+var raster = new paper.Raster('/art/portrait.jpg');
 // raster.position = paper.view.center;
 
 var gridSize = 8;
 var spacing = 1;
 
 raster.on('load', function() {
-  raster.size = new paper.Size(800/gridSize, 600/gridSize);
-  raster.rotate(90);
+  raster.size = new paper.Size(600/gridSize, 600/gridSize);
   raster.visible = false;
 
   var layers = [ [], [], [], [] ];
 
   for (var y = 0; y < raster.height; y++) {
     for(var x = 0; x < raster.width; x++) {
-      // Get the color of the pixel:
       var color = raster.getPixel(x, y).gray;
-
       var i = Math.floor(color*layers.length);
-      layers[i].push(new paper.Point(x, y).multiply(gridSize).rotate(90, new paper.Point(0,0)));
-
+      layers[i].push(new paper.Point(x, y).multiply(gridSize));// .rotate(90, new paper.Point(0,0)));
     }
   }
 

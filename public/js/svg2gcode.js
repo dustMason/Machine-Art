@@ -67,20 +67,25 @@ function svg2gcode(svg, settings) {
     var rowHeight = totalHeight / settings.horizontalSlices;
     var sortedPaths = [];
     // create empty data structure
-    for (i = 0; i <= settings.horizontalSlices; i++) {
+    for (i = 0; i < settings.horizontalSlices; i++) {
       sortedPaths[i] = [];
-      for (j = 0; j <= settings.verticalSlices; j++) {
+      for (j = 0; j < settings.verticalSlices; j++) {
         sortedPaths[i][j] = [];
       }
     }
     // populate it with paths
     paths.forEach(function(path) {
-      var rowIndex = Math.ceil((path[0].y + (totalHeight/2)) / rowHeight);
-      var colIndex = Math.ceil((path[0].x + (totalWidth/2)) / columnWidth);
-      sortedPaths[rowIndex][colIndex].push(path);
+      var rowIndex = Math.floor((path[0].y + (totalHeight/2)) / rowHeight);
+      var colIndex = Math.floor((path[0].x + (totalWidth/2)) / columnWidth);
+      // console.log(rowIndex-2, colIndex-2);
+      if (rowIndex < settings.verticalSlices && colIndex < settings.horizontalSlices) {
+        sortedPaths[rowIndex][colIndex].push(path);
+      } else {
+        console.log("warning: skipped path");
+      }
     });
     // concatenate all the paths together
-    paths = sortedPaths.map(function(row, i){
+    paths = sortedPaths.map(function(row, i) {
       if ((i % 2) == 1) row.reverse();
       return [].concat.apply([], row);
     });
@@ -112,7 +117,7 @@ function svg2gcode(svg, settings) {
     ].join(' '));
 
     // keep track of the current path being cut, as we may need to reverse it
-    var localPath = [];
+    // var localPath = [];
     for (var segmentIdx=0, segmentLength = path.length; segmentIdx<segmentLength; segmentIdx++) {
       var segment = path[segmentIdx];
 
@@ -124,22 +129,19 @@ function svg2gcode(svg, settings) {
 
       // feed through the material
       gcode.push(localSegment);
-      localPath.push(localSegment);
+      // localPath.push(localSegment);
 
       // if the path is not closed, reverse it, drop to the next cut depth and cut
       // this handles lines
-      if (segmentIdx === segmentLength - 1 &&
-          (segment.x !== path[0].x || segment.y !== path[0].y))
-      {
+      // if (segmentIdx === segmentLength - 1 && (segment.x !== path[0].x || segment.y !== path[0].y)) {
+      //   // begin the cut by dropping the tool to the work
+      //   gcode.push(['G1',
+      //     'Z' + (settings.cutZ),
+      //     'F' + '200'
+      //   ].join(' '));
+      //   Array.prototype.push.apply(gcode, localPath.reverse());
+      // }
 
-        // begin the cut by dropping the tool to the work
-        gcode.push(['G1',
-          'Z' + (settings.cutZ),
-          'F' + '200'
-        ].join(' '));
-
-        Array.prototype.push.apply(gcode, localPath.reverse());
-      }
     }
 
     // go safe
@@ -153,10 +155,12 @@ function svg2gcode(svg, settings) {
   gcode.push('G4 P1');
 
   // turn off the spindle
-  gcode.push('M5');
+  // gcode.push('M5');
 
   // go home
-  gcode.push('G1 Z0 F300');
+  // gcode.push('G1 Z0 F300');
+  // 
+  gcode.push('G1 Z' + settings.safeZ);
   gcode.push('G1 X0 Y0 F800');
 
   return gcode.join('\n');

@@ -1,85 +1,111 @@
 var width = 600,
     height = 800,
     scene = new THREE.Scene(),
-    camera = new THREE.PerspectiveCamera(33, width / height, 0.1, 119),
+    camera = new THREE.PerspectiveCamera(33, width / height, 0.1, 10000),
     renderer = new THREE.SVGRenderer(),
-    // renderer = new THREE.WebGLRenderer(),
-    canvas = document.createElement('canvas'),
-    ctx = canvas.getContext('2d'),
-    image = new Image(),
+    directionalLight = new THREE.DirectionalLight(0xffffff),
+    // controls = new THREE.TrackballControls(directionalLight),
     requestAnimationFrameId = null;
 
-var directionalLight = new THREE.DirectionalLight(0xffffff);
 directionalLight.position.set(1,1,1).normalize();
 scene.add(directionalLight);
 
-camera.position.set(0, 0, 120);
+function render() {
+  // controls.update();
+  // requestAnimationFrameId = requestAnimationFrame(render);
+  renderer.render(scene, camera);
+}
+
+camera.position.set(0, 0, 350);
 renderer.setSize(width, height);
 renderer.setClearColor( 0xff0000, 1);
 
-image.onload = function() {
-  canvas.width = image.width;
-  canvas.height = image.height;
-  ctx.drawImage(image, 0, 0, image.width, image.height);
-  var data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-  var geometry = new THREE.PlaneGeometry(60, 60, image.width-1, image.height-1);
-  for (var i = 0, j = 0, l = geometry.vertices.length; j < l;) {
-    geometry.vertices[j].z = data[i] / 10;
-    j++;
-    i += 4;
-  }
-
-  THREE.GeometryUtils.triangulateQuads(geometry);
-
-  // var solid = new THREE.MeshLambertMaterial({ color: 0xffffff });
-  var solid = new THREE.MeshPhongMaterial({
-    specular: '#ffffff',
-    color: '#eeeeee',
-    emissive: '#000000',
-    shininess: 100
-  });
-  // var lines = new THREE.MeshBasicMaterial({ color: 0x666666, wireframe: true, wireframeLinewidth: 1 });
-  // solid.side = THREE.DoubleSide;
-  var mesh = new THREE.Mesh(geometry, solid);
-  mesh.overdraw = true;
-
-  scene.add(mesh);
-  render();
-
-};
+var solid = new THREE.MeshPhongMaterial({
+  specular: '#ffffff',
+  color: '#eeeeee',
+  emissive: '#000000',
+  shininess: 100
+});
+var shape = new THREE.Mesh(new THREE.SphereGeometry(60, 32, 16), solid);
+scene.add(shape);
+render();
 
 generateButton = document.getElementById("btn-generate");
 generateButton.onclick = function(e) {
   e.preventDefault();
+
   var svg = document.getElementById("svg");
   var svgElm = svg.querySelector("svg");
   var paths = SVGReader.parse(svg.innerHTML, {}).allcolors;
-  // var XMLS = new XMLSerializer();
-  // var svgfile = XMLS.serializeToString(svg);
 
-  // clear out existing SVG
   window.cancelAnimationFrame(requestAnimationFrameId);
   $(svgElm).empty();
 
   for (i = 0; i < paths.length; i++) {
-    // console.log(paths[i]);
-    // console.log(paths[i].node.fill);
-    var tri = makeTriangle([
-      [paths[i][1].x, paths[i][1].y],
-      [paths[i][2].x, paths[i][2].y],
-      [paths[i][3].x, paths[i][3].y]
-    ], valueToStepSize(paths[i].node.fill[0]));
-    svgElm.appendChild(tri);
+    var color = paths[i].node.fill;
+    if (!color) { color = 0; } else { color = color[0]; }
+    if (paths[i].length > 4) {
+      var triangles = triangulatePath(paths[i]);
+      triangles.forEach(function(tri) {
+        svgElm.appendChild(tri);
+      });
+    } else {
+      var tri = makeTriangle([
+        [paths[i][0].x, paths[i][0].y],
+        [paths[i][1].x, paths[i][1].y],
+        [paths[i][2].x, paths[i][2].y]
+      ], valueToStepSize(color));
+      svgElm.appendChild(tri);
+    }
     // if (i === 100) { break; }
   }
 
+  var XMLS = new XMLSerializer();
+  var svgfile = XMLS.serializeToString(svgElm);
+
+  document.getElementById("gcode").innerHTML = svg2gcode(svgfile, {
+    feedRate: 1500,
+    seekRate: 10000,
+    bitWidth: 1,
+    scale: 0.75,
+    verticalSlices: 10,
+    horizontalSlices: 10
+  });
+
 };
 
-function valueToStepSize(val, longestSide) {
+function valueToStepSize(val) {
   // 0 == black
   // 255 == "white"
-  // return (((val - 255) / 255) * 10) * -1;
-  return val+10 / 4;
+  var perc = (val+1)/256.0;
+  return (perc * 8) + 1.1;
+}
+
+function triangulatePath(path) {
+  var cleanedPath = [];
+  var color = path.node.fill;
+  if (!color) { color = 0; } else { color = color[0]; }
+  $.each(path, function(i, el) {
+    var dupe = cleanedPath.find(function(cleanEl) {
+      return (el.x === cleanEl.x && el.y === cleanEl.y);
+    });
+    if (!dupe) cleanedPath.push(el);
+  });
+  try {
+    var swctx = new poly2tri.SweepContext(cleanedPath);
+    swctx.triangulate();
+    var triangles = swctx.getTriangles();
+    return triangles.map(function(t) {
+      return makeTriangle([
+        [t.getPoint(0).x, t.getPoint(0).y],
+        [t.getPoint(1).x, t.getPoint(1).y],
+        [t.getPoint(2).x, t.getPoint(2).y]
+      ], valueToStepSize(color));
+    });
+  } catch(e) {
+    console.log(e);
+    return [];
+  }
 }
 
 // 'pts' is a 3x2 array ([3][2]) for the three triangle points
@@ -149,19 +175,9 @@ function makeTriangle(pts, step) {
   var tri = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
   tri.setAttribute("fill", "none");
   tri.setAttribute("stroke", "black");
-  tri.setAttribute("stroke-width", 1);
+  tri.setAttribute("stroke-width", 0.5);
   tri.setAttribute("points", poly.join(","));
   return tri;
 }
 
-var controls = new THREE.TrackballControls(directionalLight);
-
 document.getElementById('svg').appendChild(renderer.domElement);
-
-function render() {
-  controls.update();
-  requestAnimationFrameId = requestAnimationFrame(render);
-  renderer.render(scene, camera);
-}
-
-image.src = '/art/kinect_frame_half.png';
