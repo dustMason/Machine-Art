@@ -6,8 +6,8 @@ G90 (disable incremental moves)
 G21 (metric)
 G61 (exact path mode)
 F200.00000
-S1000.00000
-T3 M6
+;S1000.00000
+;T3 M6
 G0 Z90.0
 ;M3 (start spindle)
 ;G04 P1 (wait for 1 seconds)

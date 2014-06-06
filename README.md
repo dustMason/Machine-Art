@@ -1,47 +1,20 @@
-# The Polygon Elvis
+# The Hanging Hand
 
-- Two pages: Create and Command
-- *Create* allows creation of SVG graphics using various libs
-- *Command* converts SVG data into machine-appropriate GCODE
+Based on the work of others, namely:
+
+- https://github.com/MarginallyClever
+- https://github.com/euphy
 
 ## Create
 
-- ThreeJS
-  - Import 3d models
-  - Move camera
-  - Adjust geometry
-  - Reads stream from Kinect
-- PaperJS
-  - Draw
-  - Create geometric patterns
-- etc...
+The `javascript` dir contains some experiments in creating artwork and resulting gcode
+using both node.js and the browser. Some include a basic interactive UI which allows
+manipulation of a scene before rendering out to SVG and gcode. They use paper.js and
+three.js.
+
+The `processing` dir is for processing.org experiments. These are more self-contained
+and most of them produce PDF with vector art as well as gcode.
 
 ## Command
 
-- Converts SVG into GCODE
-  - User can load SVG file
-  - Browser shows in-page preview of SVG
-  - User sets svg2gcode options and machine canvas options
-  - Prepends drawing GCODE commands with machine-specific commands then saves out to a file
-- Load GCODE file
-  - Tells the node.js server to initiate a session with the machine
-  - Server will send streaming updates to the browser via websockets
-  - Browser can send pause / halt signals via UI
-  - Browser displays a live preview showing progress of the machine
-
-# GCode Commands Implemented
-
-- M114: calls `where`
-- M18: disables motors
-- T, B, R, L, G, H, I
-- J: sets motor direction (as in config?)
-- G00, G01, G0, G1:
-  line drawing commands?
-- X, Y, Z
-- F: set feed rate (drawing speed?)
-- G02, G2, G03, G3: `arc`
-- G04, G4: `dwell` (pause?)
-- D00: move one motor
-- D01: adjust spool diameters (config)
-- D02: return spool diameters
-- D03, D04: SD card commands
+Right now I'm using MarginallyClever's gcode sender https://github.com/MarginallyClever/Makelangelo/tree/master/java/OSX but I plan to soon release my own, based on node.js.
