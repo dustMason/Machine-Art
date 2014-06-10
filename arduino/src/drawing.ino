@@ -26,8 +26,8 @@
 
 // #define STEP_STYLE     (SINGLE)
 /* #define STEP_STYLE     (DOUBLE) */
-/* #define STEP_STYLE     (INTERLEAVE) */
-#define STEP_STYLE     (MICROSTEP)
+#define STEP_STYLE     (INTERLEAVE)
+// #define STEP_STYLE     (MICROSTEP)
 
 // NEMA17 are 200 steps (1.8 degrees) per turn.  If a spool is 0.8 diameter
 // then it is 2.5132741228718345 circumference, and
@@ -35,8 +35,8 @@
 // NEMA17 are rated up to 3000RPM.  Adafruit can handle >1000RPM.
 // These numbers directly affect the maximum velocity.
 /* #define STEPS_PER_TURN  (200.0) */
-/* #define STEPS_PER_TURN  (400.0) // for interleave */
-#define STEPS_PER_TURN  (3200.0) // for microstep
+#define STEPS_PER_TURN  (400.0) // for interleave
+// #define STEPS_PER_TURN  (3200.0) // for microstep
 #define MAX_RPM         (3000.0)
 
 // switch sensitivity
