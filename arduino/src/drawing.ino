@@ -12,10 +12,6 @@
 // Comment out this line to silence most serial output.
 //#define VERBOSE         (1)
 
-// Comment out this line to disable SD cards.
-//#define USE_SD_CARD       (1)
-
-
 // which motor is on which pin?
 #define M1_PIN          (2)
 #define M2_PIN          (1)
@@ -68,19 +64,19 @@
 // servo pin differs based on device
 #define SERVO_PIN       (10)
 
-#ifndef USE_SD_CARD
-#define File int
-#endif
 
 
 //------------------------------------------------------------------------------
 // EEPROM MEMORY MAP
 //------------------------------------------------------------------------------
-#define EEPROM_VERSION   4             // Increment EEPROM_VERSION when adding new variables
-#define ADDR_VERSION     0             // address of the version number (one byte)
-#define ADDR_UUID        1             // address of the UUID (long - 4 bytes)
-#define ADDR_SPOOL_DIA1  5             // address of the spool diameter (float - 4 bytes)
-#define ADDR_SPOOL_DIA2  9             // address of the spool diameter (float - 4 bytes)
+#define EEPROM_VERSION        5             // Increment EEPROM_VERSION when adding new variables
+#define ADDR_VERSION          0             // address of the version number (one byte)
+#define ADDR_SPOOL_DIA1       4             // address of the spool diameter (float - 4 bytes)
+#define ADDR_SPOOL_DIA2       8             // address of the spool diameter (float - 4 bytes)
+#define ADDR_MACHINE_WIDTH    12            // (float - 4 bytes)
+#define ADDR_MACHINE_HEIGHT   16            // (float - 4 bytes)
+#define ADDR_PAPER_WIDTH      20            // (float - 4 bytes)
+#define ADDR_PAPER_HEIGHT     24            // (float - 4 bytes)
 
 
 //------------------------------------------------------------------------------
@@ -92,10 +88,6 @@
 // Default servo library
 #include <Servo.h> 
 
-// SD card library
-#ifdef USE_SD_CARD
-#include <SD.h>
-#endif
 
 // Saving config
 #include <EEPROM.h>
@@ -115,8 +107,11 @@ Adafruit_StepperMotor *m2;
 
 static Servo s1;
 
-// robot UID
-int robot_uid=0;
+// config values. used to calculate limits below
+static float machine_width = 0;
+static float machine_height = 0;
+static float paper_width = 0;
+static float paper_height = 0;
 
 // plotter limits
 // all distances are relative to the calibration point of the plotter.
@@ -189,6 +184,15 @@ static void adjustSpoolDiameter(float diameter1,float diameter2) {
   // Serial.print(F("SpoolDiameter2 = "); Serial.println(F(SPOOL_DIAMETER2,3));
 }
 
+static void adjustMachineLimits(float machineWidth, float machineHeight) {
+  machine_height = machineHeight;
+  machine_width = machineWidth;
+  limit_top = (machineHeight / 2.0) * -1;
+  limit_bottom = machineHeight / 2.0;
+  limit_left = (machineWidth / 2.0) * -1;
+  limit_right = machineWidth / 2.0;
+}
+
 
 //------------------------------------------------------------------------------
 // increment internal clock
@@ -226,13 +230,14 @@ static void setFeedRate(float v) {
   long step_delay2 = 1000000.0 / (feed_rate/THREADPERSTEP2);
   step_delay = step_delay1 > step_delay2 ? step_delay1 : step_delay2;
   
-  Serial.print(F("step_delay="));
-  Serial.println(step_delay);
+  /* Serial.print(F("step_delay=")); */
+  /* Serial.println(step_delay); */
 }
 
 
 //------------------------------------------------------------------------------
 static void printFeedRate() {
+  Serial.print(F("RATE:"));
   Serial.print(F("f1="));
   Serial.print(feed_rate*60.0/mode_scale);
   Serial.print(mode_name);
@@ -448,19 +453,13 @@ static void teleport(float x,float y) {
 
 //------------------------------------------------------------------------------
 static void help() {
-  Serial.println(F("== DRAWBOT - http://github.com/i-make-robots/Drawbot/ =="));
-  Serial.println(F("All commands end with a semi-colon."));
-  Serial.println(F("HELP;  - display this message"));
-  Serial.println(F("CONFIG [Tx.xx] [Bx.xx] [Rx.xx] [Lx.xx];"));
-  Serial.println(F("       - display/update this robot's configuration."));
-  Serial.println(F("TELEPORT [Xx.xx] [Yx.xx]; - move the virtual plotter."));
-  Serial.println(F("As well as the following G-codes (http://en.wikipedia.org/wiki/G-code):"));
-  Serial.println(F("G00,G01,G02,G03,G04,G20,G21,G28,G90,G91,M18,M114"));
+  Serial.println(F("See github.com/dustMason/GCode-Sender"));
 }
 
 
 //------------------------------------------------------------------------------
 static void where() {
+  Serial.print(F("WHERE:"));
   Serial.print(F("X"));
   Serial.print(posx);
   Serial.print(F(" Y"));
@@ -468,21 +467,30 @@ static void where() {
   Serial.print(F(" Z"));
   Serial.print(posz);
   Serial.print(F(" F"));
-  printFeedRate();
+  /* printFeedRate(); */
   Serial.print(F("\n"));
 }
 
 
 //------------------------------------------------------------------------------
 static void printConfig() {
-  Serial.print(m1d);              Serial.print(F("="));  
-  Serial.print(limit_top);        Serial.print(F(","));
-  Serial.print(limit_left);       Serial.print(F("\n"));
-  Serial.print(m2d);              Serial.print(F("="));  
-  Serial.print(limit_top);        Serial.print(F(","));
-  Serial.print(limit_right);      Serial.print(F("\n"));
-  Serial.print(F("Bottom="));     Serial.println(limit_bottom);
-  Serial.print(F("Feed rate="));  printFeedRate();
+  Serial.print(F("CONFIG:"));
+  Serial.print(F("W="));
+  Serial.println(machine_width);
+  Serial.print(F("H="));
+  Serial.println(machine_height);
+  Serial.print(F("M="));
+  Serial.println(m1d);
+  Serial.print(F("N="));
+  Serial.println(m2d);
+  Serial.print(F("O="));
+  Serial.println(paper_width);
+  Serial.print(F("P="));
+  Serial.println(paper_height);
+  Serial.print(F("Q="));
+  Serial.println(SPOOL_DIAMETER1);
+  Serial.print(F("R="));
+  Serial.println(SPOOL_DIAMETER2);
 }
 
 
@@ -507,117 +515,38 @@ float EEPROM_readLong(int ee) {
 
 
 //------------------------------------------------------------------------------
-static void LoadConfig() {
-  char version_number=EEPROM.read(ADDR_VERSION);
-  if(version_number<3 || version_number>EEPROM_VERSION) {
-    // If not the current EEPROM_VERSION or the EEPROM_VERSION is sullied (i.e. unknown data)
-    // Update the version number
+static void LoadConfigFromEEPROM() {
+  char version_number = EEPROM.read(ADDR_VERSION);
+  if (version_number != EEPROM_VERSION) {
     EEPROM.write(ADDR_VERSION,EEPROM_VERSION);
-    // Update robot uuid
-    robot_uid=0;
-    SaveUID();
-    // Update spool diameter variables
-    SaveSpoolDiameter();
-  }
-  if(version_number==3) {
-    // Retrieve Stored Configuration
-    robot_uid=EEPROM_readLong(ADDR_UUID);
-    adjustSpoolDiameter((float)EEPROM_readLong(ADDR_SPOOL_DIA1)/10000.0f,
-                        (float)EEPROM_readLong(ADDR_SPOOL_DIA1)/10000.0f);   //3 decimal places of percision is enough   
-    // save the new data so the next load doesn't screw up one bobbin size
-    SaveSpoolDiameter();
-    // update the EEPROM version
-    EEPROM.write(ADDR_VERSION,EEPROM_VERSION);
-  } else if(version_number==EEPROM_VERSION) {
-    // Retrieve Stored Configuration
-    robot_uid=EEPROM_readLong(ADDR_UUID);
-    adjustSpoolDiameter((float)EEPROM_readLong(ADDR_SPOOL_DIA1)/10000.0f,
-                        (float)EEPROM_readLong(ADDR_SPOOL_DIA2)/10000.0f);   //3 decimal places of percision is enough   
+    saveConfigToEEPROM();
   } else {
-    // Code should not get here if it does we should display some meaningful error message
-    Serial.println(F("An Error Occurred during LoadConfig"));
+    // Retrieve Stored Configuration
+    adjustSpoolDiameter((float)EEPROM_readLong(ADDR_SPOOL_DIA1)/10000.0f,
+                        (float)EEPROM_readLong(ADDR_SPOOL_DIA2)/10000.0f);
+    adjustMachineLimits((float)EEPROM_readLong(ADDR_MACHINE_WIDTH)/10000.0f,
+                        (float)EEPROM_readLong(ADDR_MACHINE_HEIGHT)/10000.0f);
+    paper_width = (float)EEPROM_readLong(ADDR_PAPER_WIDTH/10000.0f);
+    paper_height = (float)EEPROM_readLong(ADDR_PAPER_HEIGHT/10000.0f);
+  /* } else { */
+  /*   Serial.println(F("An Error Occurred during LoadConfigFromEEPROM")); */
   }
 }
 
 
 //------------------------------------------------------------------------------
-static void SaveUID() {
-  EEPROM_writeLong(ADDR_UUID,(long)robot_uid);
-}
+/* static void SaveUID() { */
+/*   EEPROM_writeLong(ADDR_UUID,(long)robot_uid); */
+/* } */
 
 //------------------------------------------------------------------------------
-static void SaveSpoolDiameter() {
-  EEPROM_writeLong(ADDR_SPOOL_DIA1,SPOOL_DIAMETER1*10000);
-  EEPROM_writeLong(ADDR_SPOOL_DIA2,SPOOL_DIAMETER2*10000);
-}
-
-
-#ifdef USE_SD_CARD
-//------------------------------------------------------------------------------
-void SD_PrintDirectory(File dir, int numTabs) {
-   while(true) {
-
-     File entry =  dir.openNextFile();
-     if (! entry) {
-       // no more files
-       Serial.println(F("**nomorefiles**"));
-     }
-     for (uint8_t i=0; i<numTabs; i++) {
-       Serial.print('\t');
-     }
-     Serial.print(entry.name());
-     if (entry.isDirectory()) {
-       Serial.println(F("/"));
-       SD_PrintDirectory(entry, numTabs+1);
-     } else {
-       // files have sizes, directories do not
-       Serial.print(F("\t\t"));
-       Serial.println(entry.size(), DEC);
-     }
-   }
-}
-#endif // USE_SD_CARD
-
-
-//------------------------------------------------------------------------------
-static void SD_ListFiles() {
-#ifdef USE_SD_CARD
-  File f = SD.open("/");
-  SD_PrintDirectory(f,0);
-#endif // USE_SD_CARD
-}
-
-
-//------------------------------------------------------------------------------
-static void SD_ProcessFile(char *filename) {
-#ifdef USE_SD_CARD
-  File f=SD.open(filename);
-  if(!f) {
-    Serial.print(F("File "));
-    Serial.print(filename);
-    Serial.println(F(" not found."));
-    return;
-  }
-  
-  int c;
-  while(f.peek() != -1) {
-    c=f.read();
-    if(c=='\n' || c=='\r') continue;
-    buffer[sofar++]=c;
-    if(buffer[sofar]==';') {
-      // end string
-      buffer[sofar]=0;
-      // print for our benefit
-      Serial.println(buffer);
-      // process command
-      processCommand();
-      // reset buffer for next line
-      sofar=0;
-    }
-  }
-  
-  f.close();
-#endif // USE_SD_CARD
+static void saveConfigToEEPROM() {
+  EEPROM_writeLong(ADDR_SPOOL_DIA1, SPOOL_DIAMETER1 * 10000);
+  EEPROM_writeLong(ADDR_SPOOL_DIA2, SPOOL_DIAMETER2 * 10000);
+  EEPROM_writeLong(ADDR_MACHINE_WIDTH, machine_width * 10000);
+  EEPROM_writeLong(ADDR_MACHINE_HEIGHT, machine_height * 10000);
+  EEPROM_writeLong(ADDR_PAPER_WIDTH, paper_width * 10000);
+  EEPROM_writeLong(ADDR_PAPER_HEIGHT, paper_height * 10000);
 }
 
 
@@ -660,9 +589,9 @@ static void processCommand() {
   
   if(!strncmp(buffer,"HELP",4)) {
     help();
-  } else if(!strncmp(buffer,"UID",3)) {
-    robot_uid=atoi(strchr(buffer,' ')+1);
-    SaveUID();
+  /* } else if(!strncmp(buffer,"UID",3)) { */
+  /*   robot_uid=atoi(strchr(buffer,' ')+1); */
+  /*   SaveUID(); */
   } else if(!strncmp(buffer,"TELEPORT",8)) {
     float xx=posx;
     float yy=posy;
@@ -686,23 +615,37 @@ static void processCommand() {
     m1->release();
     m2->release();
   } else if(!strncmp(buffer,"CONFIG",6)) {
-    float tt=limit_top;
-    float bb=limit_bottom;
-    float rr=limit_right;
-    float ll=limit_left;
-    char gg=m1d;
-    char hh=m2d;
+    /* float tt=limit_top; */
+    /* float bb=limit_bottom; */
+    /* float rr=limit_right; */
+    /* float ll=limit_left; */
+    float _machine_width = machine_width;
+    float _machine_height = machine_height;
+    float _paper_width = paper_width;
+    float _paper_height = paper_height;
+    char _m1d = m1d;
+    char _m2d = m2d;
+    float amountL = SPOOL_DIAMETER1;
+    float amountR = SPOOL_DIAMETER2;
     
     char *ptr=buffer;
     while(ptr && ptr<buffer+sofar && strlen(ptr)) {
       ptr=strchr(ptr,' ')+1;
       switch(*ptr) {
-      case 'T': tt=atof(ptr+1);  break;
-      case 'B': bb=atof(ptr+1);  break;
-      case 'R': rr=atof(ptr+1);  break;
-      case 'L': ll=atof(ptr+1);  break;
-      case 'G': gg=*(ptr+1);  break;
-      case 'H': hh=*(ptr+1);  break;
+      /* case 'T': tt=atof(ptr+1);  break; */
+      /* case 'B': bb=atof(ptr+1);  break; */
+      /* case 'R': rr=atof(ptr+1);  break; */
+      /* case 'L': ll=atof(ptr+1);  break; */
+      case 'W': _machine_width=atof(ptr+1); break;
+      case 'H': _machine_height=atof(ptr+1); break;
+      /* case 'G': gg=*(ptr+1); break; */
+      /* case 'H': hh=*(ptr+1); break; */
+      case 'M': _m1d=*(ptr+1); break;
+      case 'N': _m2d=*(ptr+1); break;
+      case 'O': _paper_width=atof(ptr+1); break;
+      case 'P': _paper_height=atof(ptr+1); break;
+      case 'Q': amountL=atof(ptr+1); break;
+      case 'R': amountR=atof(ptr+1); break;
       case 'I':
         if(atoi(ptr+1)>0) {
           M1_REEL_IN=FORWARD;
@@ -724,16 +667,29 @@ static void processCommand() {
       }
     }
     
-    // @TODO: check t>b, r>l ?
-    limit_top=tt;
-    limit_bottom=bb;
-    limit_right=rr;
-    limit_left=ll;
-    m1d=gg;
-    m2d=hh;
+    /* limit_top=tt; */
+    /* limit_bottom=bb; */
+    /* limit_right=rr; */
+    /* limit_left=ll; */
+    // calculate limits based on given width and height
+    // this assumes starting at center
+    /* machine_height = _machine_height; */
+    /* machine_width = _machine_width; */
+    /* limit_top = (_machine_height / 2.0) * -1; */
+    /* limit_bottom = _machine_height / 2.0; */
+    /* limit_left = (_machine_width / 2.0) * -1; */
+    /* limit_right = _machine_width / 2.0; */
+    m1d=_m1d;
+    m2d=_m2d;
     
-    teleport(0,0);
+    paper_width = _paper_width;
+    paper_height = _paper_height;
+    adjustMachineLimits(_machine_width, _machine_height);
+    adjustSpoolDiameter(amountL, amountR);
+    /* teleport(0,0); */
+    saveConfigToEEPROM();
     printConfig();
+    // printFeedRate();
   } else if(!strncmp(buffer,"G00 ",4) || !strncmp(buffer,"G01 ",4)
          || !strncmp(buffer,"G0 " ,3) || !strncmp(buffer,"G1 " ,3) ) {
     // line
@@ -836,38 +792,12 @@ static void processCommand() {
       amount = abs(amount);
       for(i=0;i<amount;++i) {  m2->step(1,dir);  delay(2);  }
     }
-  }  else if(!strncmp(buffer,"D01 ",4)) {
-    // adjust spool diameters
-    float amountL=SPOOL_DIAMETER1;
-    float amountR=SPOOL_DIAMETER2;
-    
-    char *ptr=buffer;
-    while(ptr && ptr<buffer+sofar && strlen(ptr)) {
-      ptr=strchr(ptr,' ')+1;
-      switch(*ptr) {
-      case 'L': amountL=atof(ptr+1);  break;
-      case 'R': amountR=atof(ptr+1);  break;
-      }
-    }
-
-    float tps1=THREADPERSTEP1;
-    float tps2=THREADPERSTEP2;
-    adjustSpoolDiameter(amountL,amountR);
-    if(THREADPERSTEP1 != tps1 || THREADPERSTEP2 != tps2) {
-      // Update EEPROM
-      SaveSpoolDiameter();
-    }
-  } else if(!strncmp(buffer,"D02 ",4)) {
-    Serial.print('L');
-    Serial.print(SPOOL_DIAMETER1);
-    Serial.print(F(" R"));
-    Serial.println(SPOOL_DIAMETER2);
-  } else if(!strncmp(buffer,"D03 ",4)) {
-    // read directory
-    SD_ListFiles();
-  } else if(!strncmp(buffer,"D04 ",4)) {
-    // read file
-    SD_ProcessFile(strchr(buffer,' ')+1);
+  /* } else if(!strncmp(buffer,"D02 ",4)) { */
+  /*   Serial.print(F("DIAMETER:")); */
+  /*   Serial.print(F("L=")); */
+  /*   Serial.print(SPOOL_DIAMETER1); */
+  /*   Serial.print(F(",R=")); */
+  /*   Serial.println(SPOOL_DIAMETER2); */
   } else {
     if(processSubcommand()==0) {
       Serial.print(F("Invalid command '"));
@@ -880,20 +810,15 @@ static void processCommand() {
 
 //------------------------------------------------------------------------------
 void setup() {
-  LoadConfig();
+  LoadConfigFromEEPROM();
   
   // initialize the read buffer
   sofar=0;
   // start communications
   Serial.begin(BAUD);
-  Serial.print(F("\n\nHELLO WORLD! I AM DRAWBOT #"));
-  Serial.println(robot_uid);
+  Serial.print(F("\n\nHELLO WORLD!"));
+  /* Serial.println(robot_uid); */
   
-#ifdef USE_SD_CARD
-  SD.begin();
-  SD_ListFiles();
-#endif
-
   // start the shield
   AFMS0.begin();
   m1 = AFMS0.getStepper(STEPS_PER_TURN, M2_PIN);
